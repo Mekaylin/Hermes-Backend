@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+psycopg2-binary
+pandas
+requests
+torch
+transformers
+yfinance
+ta
+scikit-learn
+numpy

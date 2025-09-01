@@ -1,0 +1,18 @@
+2025-09-01: Added init_db.sql for PostgreSQL predictions table setup.
+2025-09-01: Added combine_signals ensemble function to ensemble.py.
+2025-09-01: Wired up FastAPI endpoints to use GRU, FinBERT, ensemble, and database modules in main.py.
+2025-09-01: Added PostgreSQL integration for storing and retrieving predictions in database.py.
+2025-09-01: Added scripts for GRU training, market data fetching, and sentiment analysis in scripts/.
+2025-09-01: Added GRU model class to model_gru.py and FinBERT sentiment analysis class to model_finbert.py.
+2025-09-01: Added technical indicator calculation functions (EMA, RSI, MACD, Bollinger Bands) to data_fetcher.py. Updated requirements.txt to fix missing packages.
+2025-09-01: Initial backend structure created. Added FastAPI app with placeholder endpoints, config loader, and CHANGES file.
+2025-09-01: Added Dockerfile and docker-compose.yml for backend deployment. Implemented OHLCV and news fetching functions in data_fetcher.py.
+2025-09-01: Added GRU model class to model_gru.py and FinBERT sentiment analysis class to model_finbert.py.
+2025-09-01: Added scripts for GRU training, market data fetching, and sentiment analysis in scripts/.
+2025-09-01: Added PostgreSQL integration for storing and retrieving predictions in database.py.
+2025-09-01: Wired up FastAPI endpoints to use GRU, FinBERT, ensemble, and database modules in main.py.
+2025-09-01: Added combine_signals ensemble function to ensemble.py.
+2025-09-01: Added init_db.sql for PostgreSQL predictions table setup.
+2025-09-01: Frontend fully designed with professional dark theme UI, live data integration, modern widgets, and comprehensive user experience.
+2025-09-01: Initial backend structure created. Added FastAPI app with placeholder endpoints, config loader, and CHANGES file.
+2025-09-01: Added Dockerfile and docker-compose.yml for backend deployment. Implemented OHLCV and news fetching functions in data_fetcher.py.
