@@ -150,6 +150,14 @@ class MarketScout:
     
     def fetch_news_sentiment(self, symbol: str) -> float:
         """Fetch and analyze news sentiment"""
+        # Try to use FinBERT if available (optional heavy dependency)
+        finbert = None
+        try:
+            from model_finbert import FinBERTSentiment
+            finbert = FinBERTSentiment()
+        except Exception:
+            finbert = None
+
         try:
             # Extract base symbol for news search
             search_term = symbol.replace('-USD', '').replace('-USDT', '')
@@ -165,41 +173,57 @@ class MarketScout:
                 'apiKey': NEWS_API_KEY
             }
             
-            if not NEWS_API_KEY:
-                logger.warning("No NEWS_API_KEY configured, using neutral sentiment")
-                return 0.0
-            
+            # If FinBERT loaded successfully, use it to analyse headlines first
             response = requests.get(url, params=params, timeout=10)
             if response.status_code != 200:
                 logger.warning(f"News API error: {response.status_code}")
                 return 0.0
-            
+
             news_data = response.json()
             articles = news_data.get('articles', [])
-            
+
             if not articles:
                 return 0.0
-            
-            # Simple sentiment analysis based on keywords
+
+            # If FinBERT is available, map its 3-class output to [-1,1]
+            if finbert is not None:
+                scores = []
+                for article in articles[:5]:
+                    text = f"{article.get('title','')} {article.get('description','')}"
+                    try:
+                        label, probs = finbert.predict_sentiment(text)
+                        # label: 0 neg, 1 neutral, 2 pos -> map to -1..1
+                        mapped = -1.0 if label == 0 else (0.0 if label == 1 else 1.0)
+                        # weight by confidence (max prob)
+                        confidence = max(probs) if isinstance(probs, (list, tuple)) else 1.0
+                        scores.append(mapped * confidence)
+                    except Exception:
+                        # fallback to neutral for this article
+                        scores.append(0.0)
+
+                return float(np.mean(scores)) if scores else 0.0
+
+            # Otherwise fallback to keyword heuristic
             positive_words = ['surge', 'rally', 'bullish', 'gains', 'up', 'rise', 'positive', 'strong', 'growth']
             negative_words = ['crash', 'fall', 'bearish', 'down', 'drop', 'negative', 'decline', 'weak', 'loss']
-            
+
             sentiment_scores = []
             for article in articles[:5]:  # Analyze top 5 articles
                 title = article.get('title', '').lower()
-                description = article.get('description', '').lower()
+                description = article.get('description', '') or ''
+                description = description.lower()
                 text = f"{title} {description}"
-                
+
                 pos_count = sum(1 for word in positive_words if word in text)
                 neg_count = sum(1 for word in negative_words if word in text)
-                
+
                 if pos_count > neg_count:
                     sentiment_scores.append(0.7)
                 elif neg_count > pos_count:
                     sentiment_scores.append(-0.7)
                 else:
                     sentiment_scores.append(0.0)
-            
+
             return np.mean(sentiment_scores) if sentiment_scores else 0.0
             
         except Exception as e:

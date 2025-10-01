@@ -1,0 +1,10 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["/.stylelintrc", ".stylelintrc.json", "stylelint.config.json"],
+      "url": "./.vscode/stylelintrc.json"
+    }
+  ],
+  "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+  "python.venvPath": "./backend/.venv"
+}

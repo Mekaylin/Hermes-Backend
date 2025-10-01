@@ -1,0 +1,13 @@
+2025-09-01: Added api_service.dart for backend API integration (signal, history, news endpoints).
+2025-09-01: Fully redesigned frontend with professional dark theme UI including:
+  - Modern dark theme with blue/orange accent colors
+  - Enhanced home screen with live data loading and auto-refresh
+  - Professional AI signal widget with confidence meter and gradient design
+  - Advanced market chart with grid, tooltips, and AI trend overlay
+  - Redesigned news feed with sentiment indicators and time formatting
+  - Professional asset selector with color coding
+  - Price ticker widget showing current price and changes
+  - Portfolio/AI performance summary widget
+  - Loading animation widget
+  - Improved app theme and typography
+2025-09-01: Created Flutter app structure with main screen, widgets for market chart, AI signal, news feed, and asset selector. Added placeholder data and UI. See backend/CHANGES for backend log.

@@ -1,0 +1,13 @@
+services:
+  - type: web_service
+    name: hermes-backend
+    env: docker
+    branch: master
+    plan: starter
+    dockerfilePath: backend/Dockerfile
+    startCommand: "python backend/run_app.py"
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8000"
+    healthCheckPath: /api/agent/health

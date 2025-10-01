@@ -1,0 +1,39 @@
+{
+  "name": "hermes-agent",
+  "version": "0.1",
+  "description": "Agent wrapper for trading companion backend",
+  "tools": {
+    "fetch_market_data": {
+      "description": "Fetch candlestick data for asset and timeframe",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "asset": {"type": "string"},
+          "tf": {"type": "string"}
+        },
+        "required": ["asset", "tf"]
+      }
+    },
+    "get_recommendations": {
+      "description": "Return top recommendations for a category",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {"type": "string", "enum": ["crypto","fx","stocks","commodities"]}
+        },
+        "required": ["category"]
+      }
+    },
+    "explain_trade": {
+      "description": "Explain a recommendation in clear rationale text",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "recommendation": {"type": "object"}
+        },
+        "required": ["recommendation"]
+      }
+    }
+  },
+  "response_format": "{signal, entry, target, stop, confidence, rationale}"
+}

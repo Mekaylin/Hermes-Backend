@@ -1,0 +1,30 @@
+# FastAPI and web server dependencies
+fastapi
+uvicorn[standard]
+websockets
+python-multipart
+
+# HTTP client for API calls
+aiohttp
+httpx
+requests
+
+# Data processing and ML - basic versions
+pandas
+numpy
+scikit-learn
+lightgbm
+joblib
+
+# Database
+sqlalchemy
+
+# Data validation - basic
+pydantic>=2.0,<2.5
+
+# Logging and utilities
+python-dotenv
+
+# For financial data APIs
+yfinance
+alpha-vantage

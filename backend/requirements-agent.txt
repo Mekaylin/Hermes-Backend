@@ -1,0 +1,28 @@
+# AI Trading Agent Dependencies for Hermes
+
+# OpenAI for GPT analysis
+openai>=1.0.0
+
+# Technical Analysis
+TA-Lib>=0.4.26
+yfinance>=0.2.18
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Machine Learning & NLP
+transformers>=4.30.0
+torch>=2.0.0
+scikit-learn>=1.3.0
+
+# Web requests
+requests>=2.31.0
+aiohttp>=3.8.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Data processing
+pandas-ta>=0.3.14b
+
+# Async support
+asyncio-throttle>=1.0.2
