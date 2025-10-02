@@ -4,7 +4,9 @@ services:
     env: docker
     branch: master
     plan: starter
-    dockerfilePath: backend/Dockerfile
+    rootDir: .
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
     startCommand: "python backend/run_app.py"
     autoDeploy: true
     envVars:
