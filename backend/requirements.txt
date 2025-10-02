@@ -1,8 +1,8 @@
 # Minimal, pinned requirements for Hermes backend (cleaned)
 # Adjust versions as needed; use a lockfile for deterministic builds
 
-fastapi==0.95.2
-uvicorn[standard]==0.22.0
+fastapi==0.115.0
+uvicorn[standard]==0.32.1
 pydantic==2.11.9
 pydantic-settings==2.11.0
 python-dotenv==1.1.1
