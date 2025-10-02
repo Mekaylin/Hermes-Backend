@@ -3,7 +3,7 @@
 This module attempts to import `redis.asyncio` (redis-py v4+). If not
 available it gracefully falls back to a no-op client and reports status.
 """
-from typing import Optional
+from typing import Optional, Any
 import os
 import asyncio
 
@@ -21,7 +21,7 @@ except Exception:
     _redis = None
 
 
-async def get_redis_client() -> Optional[object]:
+async def get_redis_client() -> Optional[Any]:
     """Return a connected redis.asyncio client or None.
 
     The client is created on first call and re-used. If REDIS_URL is not set

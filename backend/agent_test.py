@@ -8,8 +8,8 @@ from datetime import datetime
 import logging
 from typing import Dict, Any
 
-# Import our AI agent
-from agent import TradingAgent, TradingPrediction, Signal
+# Import our AI agent (use package import so language server resolves symbols)
+from backend.agent import TradingAgent, TradingPrediction, Signal
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

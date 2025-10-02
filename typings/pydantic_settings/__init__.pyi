@@ -1,0 +1,6 @@
+# Minimal stub for pydantic-settings
+from typing import Any, Dict
+
+class BaseSettings:
+    class Config: ...
+    def __init__(self, **kwargs: Any): ...

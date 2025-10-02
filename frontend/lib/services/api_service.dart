@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/trading_data.dart';
+import '../config/app_config.dart';
 
 class ApiService {
   final String baseUrl;
 
-  // Default to Node mock backend running on 8080 for local frontend development
-  ApiService({String? baseUrl}) : baseUrl = baseUrl ?? 'http://localhost:8080';
+  // Use production backend by default (can be toggled in AppConfig)
+  ApiService({String? baseUrl}) : baseUrl = baseUrl ?? AppConfig.apiBaseUrl;
 
   // Get all available assets
   Future<List<Asset>> getAssets() async {

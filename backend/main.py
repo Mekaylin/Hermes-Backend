@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 import asyncio
 import logging
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any
 from typing import Dict, List, Optional
 import json
 import uuid
@@ -20,41 +21,55 @@ from contextlib import asynccontextmanager
 from assets import AssetManager, Asset, AssetCategory
 from data_fetcher_enhanced import DataFetcher
 
-# ml_models may require native libs (lightgbm). Import lazily with a safe
-# fallback so the app can start in degraded mode when LightGBM isn't present.
+if TYPE_CHECKING:
+    # For static typing only - import real types when type-checking
+    from ml_models import EnsemblePredictor as _T_EnsemblePredictor, TradingSignal as _T_TradingSignal, SignalType as _T_SignalType  # type: ignore
+else:
+    _T_EnsemblePredictor = Any  # runtime: use Any when not type-checking
+    _T_TradingSignal = Any
+    _T_SignalType = Any
+
+# At runtime try to import real implementations; otherwise provide small fallback
 try:
-    from ml_models import EnsemblePredictor, TradingSignal, SignalType
-except Exception as e:
-    logger = logging.getLogger(__name__)
-    logger.warning(f"Could not import ml_models (proceeding with fallback): {e}")
+    import ml_models as _ml_models
+    RuntimeEnsemble = getattr(_ml_models, 'EnsemblePredictor', None)
+    RuntimeTradingSignal = getattr(_ml_models, 'TradingSignal', None)
+    RuntimeSignalType = getattr(_ml_models, 'SignalType', None)
+except Exception:
+    RuntimeEnsemble = None
+    RuntimeTradingSignal = None
+    RuntimeSignalType = None
 
-    # Minimal fallback implementations
-    from enum import Enum
-    from dataclasses import dataclass
-    import datetime
+from dataclasses import dataclass
+import datetime as _dt
 
-    class SignalType(Enum):
-        BUY = "buy"
-        SELL = "sell"
-        HOLD = "hold"
+class _FallbackEnsemblePredictor:
+    def __init__(self):
+        pass
 
-    @dataclass
-    class TradingSignal:
-        signal: SignalType = SignalType.HOLD
-        confidence: float = 50.0
-        entry_price: float = 0.0
-        target_price: float = 0.0
-        stop_loss: float = 0.0
-        reasoning: list = None
-        timestamp: datetime.datetime = datetime.datetime.now()
+    def predict(self, df):
+        return _FallbackTradingSignal()
 
-    class EnsemblePredictor:
-        def __init__(self):
-            pass
+    def train(self, df):
+        return {"status": "skipped", "reason": "ml_models not installed"}
 
-        def predict(self, df):
-            # Return a neutral HOLD signal when the real predictor is unavailable
-            return TradingSignal()
+    def save_models(self, path: str):
+        return None
+
+@dataclass
+class _FallbackTradingSignal:
+    signal: str = 'HOLD'
+    confidence: float = 50.0
+    entry_price: float = 0.0
+    target_price: float = 0.0
+    stop_loss: float = 0.0
+    reasoning: list | None = None
+    timestamp: _dt.datetime = _dt.datetime.now()
+
+# Expose names used elsewhere but choose runtime implementation carefully
+EnsemblePredictor = RuntimeEnsemble if RuntimeEnsemble is not None else _FallbackEnsemblePredictor
+TradingSignal = RuntimeTradingSignal if RuntimeTradingSignal is not None else _FallbackTradingSignal
+SignalType = RuntimeSignalType if RuntimeSignalType is not None else _T_SignalType
 
 
 # Configure logging
@@ -64,7 +79,7 @@ logger = logging.getLogger(__name__)
 # Global instances
 asset_manager = AssetManager()
 data_fetcher = DataFetcher()
-ml_predictor = EnsemblePredictor()
+ml_predictor: Any = EnsemblePredictor()
 
 # WebSocket connections manager
 class ConnectionManager:
@@ -466,7 +481,7 @@ async def generate_prediction(request: PredictionRequest):
         logger.error(f"Error generating prediction for {request.symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def _get_recommendation_text(signal: TradingSignal) -> str:
+def _get_recommendation_text(signal: Any) -> str:
     """Convert trading signal to human-readable recommendation"""
     
     confidence_level = "high" if signal.confidence > 75 else "medium" if signal.confidence > 50 else "low"

@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union
 from dataclasses import dataclass
 import yfinance as yf
 
-from assets import Asset, AssetCategory
+from .assets import Asset, AssetCategory
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,24 @@ class MarketData:
     low_24h: float
     ohlcv_data: List[OHLCV]
     last_updated: datetime
+
+    # Backwards-compatible properties expected by other modules
+    @property
+    def price(self) -> float:
+        return float(self.current_price)
+
+    @property
+    def change_24h(self) -> float:
+        return float(self.price_change_24h)
+
+    @property
+    def change_percent_24h(self) -> float:
+        return float(self.price_change_pct_24h)
+
+    @property
+    def market_cap(self):
+        # Not provided by all sources; return None when unavailable
+        return getattr(self, "_market_cap", None)
 
 class DataFetcher:
     """Multi-source data fetcher with fallback mechanisms"""
@@ -132,8 +150,12 @@ class DataFetcher:
             # Parse OHLCV data
             ohlcv_data = []
             for timestamp, row in hist.iterrows():
+                # Ensure we convert whatever index type (Timestamp, numpy datetime64, etc.)
+                # to a Python datetime safely for downstream usage and to satisfy
+                # the language server (pylance) which may view the index as Hashable.
+                ts_dt = pd.to_datetime(timestamp).to_pydatetime()
                 ohlcv_data.append(OHLCV(
-                    timestamp=timestamp.to_pydatetime(),
+                    timestamp=ts_dt,
                     open=float(row['Open']),
                     high=float(row['High']),
                     low=float(row['Low']),
@@ -272,6 +294,45 @@ class DataFetcher:
                 return data
         
         logger.error(f"Unable to fetch data for {asset.symbol} from any source")
+        return None
+
+    # Backwards-compatible convenience wrappers used elsewhere in the codebase
+    async def get_market_data(self, symbol_or_asset) -> Optional[MarketData]:
+        """Accept either an Asset instance or a symbol string and return MarketData"""
+        # If a symbol string was passed, try to resolve via AssetManager lazily to avoid circular imports
+        if isinstance(symbol_or_asset, str):
+            try:
+                from .assets import AssetManager
+                asset = AssetManager.get_asset_by_symbol(symbol_or_asset)
+            except Exception:
+                asset = None
+        else:
+            asset = symbol_or_asset
+
+        if not asset:
+            return None
+
+        return await self.fetch_market_data(asset)
+
+    async def get_ohlcv_data(self, symbol_or_asset, timeframe: str = "1h", limit: int = 100) -> Optional[List[OHLCV]]:
+        """Return raw OHLCV list for a given symbol or Asset"""
+        if isinstance(symbol_or_asset, str):
+            try:
+                from .assets import AssetManager
+                asset = AssetManager.get_asset_by_symbol(symbol_or_asset)
+            except Exception:
+                asset = None
+        else:
+            asset = symbol_or_asset
+
+        if not asset:
+            return None
+
+        # Prefer crypto for binance-style assets if category indicates crypto
+        data = await self.fetch_market_data(asset)
+        if data:
+            return data.ohlcv_data
+
         return None
     
     async def fetch_multiple_assets(self, assets: List[Asset]) -> Dict[str, MarketData]:

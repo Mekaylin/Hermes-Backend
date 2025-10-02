@@ -49,10 +49,10 @@ async def synthesize(vector_store_id: str = Form(...), query: str = Form(...)):
         res = client.search(vector_store_id=vector_store_id, query=query)
         # format results
         formatted = ''
-        for item in res.data:
-            formatted += f"<result file_id='{item.file_id}' filename='{getattr(item,'filename', '')}'>"
-            for part in item.content:
-                formatted += part.text
+        for item in getattr(res, 'data', []) or []:
+            formatted += f"<result file_id='{getattr(item, 'file_id', '')}' filename='{getattr(item, 'filename', '')}'>"
+            for part in getattr(item, 'content', []):
+                formatted += getattr(part, 'text', '')
             formatted += '</result>'
 
         answer = client.synthesize_with_model(formatted, query)

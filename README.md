@@ -1,84 +1,6 @@
-# Hermes — Trading Companion (developer notes)
-
-This README contains concise local developer instructions for running the backend and the full stack during development.
-
-## Quick local backend (venv)
-
-1. Create a virtualenv and activate it:
-
-```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-```
-
-2. Install minimal dependencies (development):
-
-```bash
-pip install --upgrade pip wheel setuptools
-pip install -r requirements.txt
-```
-
-- Note: Some packages (pydantic-core, LightGBM) can require platform toolchains (Rust, libomp).
-- Recommendation: Use Python 3.11 for best compatibility with SQLAlchemy/Alembic and many binary wheels used by the project. If you hit build errors, either:
-- - Use Python 3.11 (prebuilt wheels are more common), or
-- Use the Docker instructions below to run inside containers where build-time issues are avoided.
-
-3. Run the backend in development mode:
-
-```bash
-cd backend
-source venv/bin/activate
-uvicorn backend.simple_main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-4. ML model fallback: a small sklearn model has been saved to `backend/ml/artifacts/lightgbm_model.pkl` so `/predict` will work even if native LightGBM isn't available.
-
-## Full stack (Docker compose)
-
-This repo includes a `docker-compose.yml` that defines `backend`, `db` (Postgres), and `redis` services. Docker is recommended for full integration testing.
-
-```bash
-# from project root
-docker compose up -d --build
-
-# View backend logs
-docker compose logs -f backend
-```
-
-Notes:
-- The `backend` service reads `REDIS_URL` and `DATABASE_URL` from the environment. See `.env.example` for suggestions.
-- If Docker isn't available on your machine, follow the venv instructions above instead.
-
-## Optional: FinBERT sentiment
-
-FinBERT support is optional. To enable:
-
-1. Install transformers (and optionally sentencepiece):
-
-```bash
-pip install "transformers[sentencepiece]"
-```
-
-2. Set `FINBERT_MODEL` or `FINBERT_PATH` to a huggingface model id or local path:
-
-```bash
-export FINBERT_MODEL=ProsusAI/finbert
-```
-
-The sentiment endpoint will use FinBERT when configured; otherwise it uses a heuristic.
-
-## Notes & Troubleshooting
-- If `pip install -r requirements.txt` fails while building wheels (pydantic-core, LightGBM), use Docker or switch to Python 3.11/3.12.
-- The project supports a Redis-backed distributed rate limiter. Ensure `REDIS_URL` points to a reachable Redis instance when running multiple backend workers.
-
-## Next developer tasks
-- Add Redis health-check during backend startup (pending)
-- Improve training pipeline with real historical OHLCV data and retrain LightGBM/GRU models
-- Wire Flutter frontend to backend endpoints and test end-to-end
 # Hermes - AI Trading Companion
 
-A comprehensive Flutter + FastAPI trading companion tool that provides real-time AI-powered market analysis and trading suggestions.
+A Flutter + FastAPI mobile trading companion app that provides real-time AI-powered market analysis and trading suggestions.
 
 ## 🚀 Features
 
@@ -87,16 +9,137 @@ A comprehensive Flutter + FastAPI trading companion tool that provides real-time
 - **Beginner-Friendly**: Clean interface with explanations for trading decisions
 - **Advisory Only**: No direct trading - acts as your intelligent trading companion
 - **Cost-Efficient**: Uses free-tier APIs and lightweight ML models
-- **Cross-Platform**: Flutter app for iOS and Android
+- **Mobile & Desktop**: Flutter app for iOS, Android, and macOS
 
 ## 📁 Project Structure
 
 ```
-├── frontend/          # Flutter mobile app
+├── frontend/          # Flutter app (iOS, Android, macOS)
 ├── backend/           # FastAPI server with AI models
 ├── data/             # ML training scripts and data fetching
 └── README.md
 ```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Flutter**: 3.35.2+ ([Install Flutter](https://flutter.dev/docs/get-started/install))
+- **Python**: 3.11+ ([Install Python](https://www.python.org/downloads/))
+- **Firebase Account**: For authentication and Firestore database
+- **Node.js**: For Firebase CLI (optional but recommended)
+
+### Backend Setup
+
+1. Create and activate a virtual environment:
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # On macOS/Linux
+```
+
+2. Install dependencies:
+
+```bash
+pip install --upgrade pip wheel setuptools
+pip install -r requirements.txt
+```
+
+3. Run the backend:
+
+```bash
+uvicorn backend.simple_main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The backend will be available at `http://localhost:8000`
+
+**Production Backend**: `https://hermes-backend-5s2l.onrender.com`
+
+### Flutter App Setup
+
+1. Navigate to the Flutter app:
+
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+
+```bash
+flutter pub get
+```
+
+3. Configure Firebase (see [FLUTTER_SETUP.md](FLUTTER_SETUP.md) for detailed instructions):
+
+```bash
+# Install FlutterFire CLI
+dart pub global activate flutterfire_cli
+
+# Configure Firebase for your project
+flutterfire configure --project=hermes
+```
+
+4. Run the app:
+
+```bash
+# Web
+flutter run -d chrome
+
+# iOS
+flutter run -d ios
+
+# Android
+flutter run -d android
+
+# macOS
+flutter run -d macos
+```
+
+## 📚 Documentation
+
+- **[FLUTTER_SETUP.md](FLUTTER_SETUP.md)**: Complete Flutter + Firebase setup guide
+- **[PRODUCTION_DEPLOYED.md](PRODUCTION_DEPLOYED.md)**: Backend deployment information
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Deployment instructions and configuration
+
+## 🔧 Development
+
+### Running the Full Stack Locally
+
+1. Start the backend (in one terminal):
+```bash
+cd backend
+source venv/bin/activate
+uvicorn backend.simple_main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+2. Start the Flutter app (in another terminal):
+```bash
+cd frontend
+flutter run -d chrome  # or your preferred platform
+```
+
+### Docker Support (Optional)
+
+For full integration testing with Postgres and Redis:
+
+```bash
+docker compose up -d --build
+docker compose logs -f backend
+```
+
+## 🏗️ Architecture
+
+- **Frontend**: Flutter (all platforms) with Firebase for auth and Firestore for data persistence
+- **Backend**: FastAPI (Python) with AI/ML models for market predictions
+- **Database**: Firestore for user data, portfolios, watchlists
+- **Deployment**: Backend on Render, Flutter app can be deployed to app stores or web hosting
+
+## � Firebase Services Used
+
+- **Firebase Auth**: User authentication (email/password, Google sign-in)
+- **Cloud Firestore**: NoSQL database for user data
+- **Firebase Analytics**: App usage tracking (optional)
 
 ## 🛠️ Technology Stack
 

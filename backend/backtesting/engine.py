@@ -170,7 +170,7 @@ def run_backtest(symbol: str, start_date: str, end_date: str) -> Dict[str, Any]:
     for date, row in df.iterrows():
         # For each daily candle, ask the AI agent for a prediction
         # The agent expects symbol/timeframe; we'll use '1d' timeframe
-        prediction: TradingPrediction = None
+        prediction: Optional[TradingPrediction] = None
         try:
             # agent.analyze_asset is async in original; call synchronously via .analyze_asset
             # If TradingAgent.analyze_asset is async, call using asyncio.run may be heavy; many agents will provide sync fallback
@@ -203,7 +203,7 @@ def run_backtest(symbol: str, start_date: str, end_date: str) -> Dict[str, Any]:
                 pct = pnl / (position_entry_price * position_quantity) if position_entry_price * position_quantity != 0 else 0
                 trade = TradeRecord(
                     entry_date=position_entry_date,
-                    exit_date=date.to_pydatetime(),
+                    exit_date=pd.to_datetime(date).to_pydatetime(),
                     symbol=symbol,
                     action='SELL',
                     entry_price=position_entry_price,
@@ -241,7 +241,7 @@ def run_backtest(symbol: str, start_date: str, end_date: str) -> Dict[str, Any]:
             position_open = True
             position_entry_price = price
             position_quantity = qty
-            position_entry_date = date.to_pydatetime()
+            position_entry_date = pd.to_datetime(date).to_pydatetime()
 
             # Record entry trade with no exit yet
             trade = TradeRecord(
@@ -260,7 +260,7 @@ def run_backtest(symbol: str, start_date: str, end_date: str) -> Dict[str, Any]:
         # Update daily portfolio value
         position_value = position_quantity * price if position_open else 0.0
         portfolio_value = balance + position_value
-        equity_curve.append((date.strftime('%Y-%m-%d'), portfolio_value))
+        equity_curve.append((pd.to_datetime(date).strftime('%Y-%m-%d'), portfolio_value))
         daily_portfolio_values.append(portfolio_value)
 
     # At the end, if a position is still open, close at last price
@@ -270,7 +270,7 @@ def run_backtest(symbol: str, start_date: str, end_date: str) -> Dict[str, Any]:
         pct = pnl / (position_entry_price * position_quantity) if position_entry_price * position_quantity != 0 else 0
         trade = TradeRecord(
             entry_date=position_entry_date,
-            exit_date=df.index[-1].to_pydatetime(),
+            exit_date=pd.to_datetime(df.index[-1]).to_pydatetime(),
             symbol=symbol,
             action='SELL',
             entry_price=position_entry_price,

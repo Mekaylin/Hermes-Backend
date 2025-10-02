@@ -172,10 +172,11 @@ class TechnicalAnalyzer:
             Dict of technical indicators
         """
         try:
-            close = df['Close'].values
-            high = df['High'].values
-            low = df['Low'].values
-            volume = df['Volume'].values
+            # Coerce OHLCV columns to numeric Series to avoid object/ndarray typing
+            close = pd.to_numeric(df['Close'], errors='coerce')
+            high = pd.to_numeric(df['High'], errors='coerce')
+            low = pd.to_numeric(df['Low'], errors='coerce')
+            volume = pd.to_numeric(df['Volume'], errors='coerce')
             
             indicators = {}
             
@@ -187,11 +188,15 @@ class TechnicalAnalyzer:
             
             # RSI calculation
             if len(df) >= 14:
-                delta = df['Close'].diff()
-                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                # Use numeric close Series and fillna to ensure comparisons are well-typed
+                delta = close.diff().fillna(0)
+                gain = delta.where(delta > 0, 0).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rs = gain / loss
-                indicators['RSI'] = (100 - (100 / (1 + rs))).iloc[-1]
+                # avoid division by zero
+                rs = gain / loss.replace(0, np.nan)
+                rsi_series = 100 - (100 / (1 + rs))
+                if not rsi_series.empty and np.isfinite(rsi_series.iloc[-1]):
+                    indicators['RSI'] = float(rsi_series.iloc[-1])
             
             # MACD calculation
             if len(df) >= 26:
@@ -218,11 +223,14 @@ class TechnicalAnalyzer:
             
             # Average True Range (ATR) calculation
             if len(df) >= 14:
-                high_low = df['High'] - df['Low']
-                high_close = np.abs(df['High'] - df['Close'].shift())
-                low_close = np.abs(df['Low'] - df['Close'].shift())
+                # Use pandas operations to keep Series types (helps type checkers)
+                high_low = high - low
+                high_close = (high - close.shift()).abs()
+                low_close = (low - close.shift()).abs()
                 true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-                indicators['ATR'] = true_range.rolling(window=14).mean().iloc[-1]
+                atr_series = true_range.rolling(window=14).mean()
+                if not atr_series.empty and np.isfinite(atr_series.iloc[-1]):
+                    indicators['ATR'] = float(atr_series.iloc[-1])
             
             # Support and Resistance levels
             indicators['Support'] = df['Low'].rolling(window=20).min().iloc[-1] if len(df) >= 20 else None

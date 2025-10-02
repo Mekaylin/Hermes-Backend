@@ -34,7 +34,7 @@ async def predict(symbol: str = Query(...), tf: str = Query("1h")):
     try:
         if getattr(_db, 'SessionLocal', None):
             db = _db.SessionLocal()
-            asset = db.query(Asset).filter(Asset.symbol == symbol).first()
+            asset = db.query(Asset).filter(getattr(Asset, 'symbol', None) == symbol).first()
             if not asset:
                 # Create a minimal asset record if missing (category unknown)
                 try:

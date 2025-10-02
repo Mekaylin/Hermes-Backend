@@ -22,7 +22,7 @@ if getattr(_db, 'HAS_SQLALCHEMY', False):
     from .db import Base
 
 
-    class Asset(Base):
+    class Asset(Base):  # type: ignore[reportRedeclaration]
         __tablename__ = 'assets'
 
         id = Column(Integer, primary_key=True, index=True)
@@ -31,7 +31,7 @@ if getattr(_db, 'HAS_SQLALCHEMY', False):
         category = Column(Enum(AssetCategory), nullable=False)
 
 
-    class Candle(Base):
+    class Candle(Base):  # type: ignore[reportRedeclaration]
         __tablename__ = 'candles'
 
         id = Column(Integer, primary_key=True, index=True)
@@ -46,7 +46,7 @@ if getattr(_db, 'HAS_SQLALCHEMY', False):
         asset = relationship('Asset')
 
 
-    class Prediction(Base):
+    class Prediction(Base):  # type: ignore[reportRedeclaration]
         __tablename__ = 'predictions'
 
         id = Column(Integer, primary_key=True, index=True)
@@ -62,7 +62,7 @@ if getattr(_db, 'HAS_SQLALCHEMY', False):
         asset = relationship('Asset')
 
 
-    class NewsItem(Base):
+    class NewsItem(Base):  # type: ignore[reportRedeclaration]
         __tablename__ = 'news_items'
 
         id = Column(Integer, primary_key=True, index=True)
@@ -75,7 +75,7 @@ if getattr(_db, 'HAS_SQLALCHEMY', False):
         asset = relationship('Asset')
 else:
     # Minimal non-ORM placeholders used when SQLAlchemy can't be imported.
-    class Asset:
+    class Asset:  # type: ignore[reportRedeclaration]
         def __init__(self, symbol: str, name: str = None, category: AssetCategory = AssetCategory.stocks):
             self.id = None
             self.symbol = symbol
@@ -83,7 +83,7 @@ else:
             self.category = category
 
 
-    class Candle:
+    class Candle:  # type: ignore[reportRedeclaration]
         def __init__(self, asset_id=None, timestamp=None, open=0, high=0, low=0, close=0, volume=0):
             self.id = None
             self.asset_id = asset_id
@@ -95,7 +95,7 @@ else:
             self.volume = volume
 
 
-    class Prediction:
+    class Prediction:  # type: ignore[reportRedeclaration]
         def __init__(self, asset_id=None, timestamp=None, signal=None, confidence=0.0, entry=0.0, target=0.0, stop=0.0, rationale=''):
             self.id = None
             self.asset_id = asset_id
@@ -108,7 +108,7 @@ else:
             self.rationale = rationale
 
 
-    class NewsItem:
+    class NewsItem:  # type: ignore[reportRedeclaration]
         def __init__(self, asset_id=None, timestamp=None, source=None, headline=None, sentiment=0.0):
             self.id = None
             self.asset_id = asset_id

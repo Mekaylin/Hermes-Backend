@@ -1,0 +1,21 @@
+#!/bin/sh
+# Prevent committing .env files accidentally.
+# Install by running: ./scripts/enable-git-hooks.sh
+
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+echo "$STAGED_FILES" | grep -E '(^|/)(\.env|\.env\.|env$)' >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+  echo "\nERROR: Attempt to commit an env file (.env) detected."
+  echo "Please remove it from the index (git reset <file>) and store secrets in a secure store or CI environment variables."
+  echo "You can copy the example and edit it locally: cp backend/.env.example backend/.env"
+  echo "To prevent accidental commits in the future enable the repo hooks: ./scripts/enable-git-hooks.sh\n"
+  exit 1
+fi
+
+exit 0

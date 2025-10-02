@@ -36,12 +36,12 @@ def test_run_backtest_structure(monkeypatch, tmp_path):
 
         analyze_asset = fake_analyze_asset
 
-    fake_agent_mod.TradingAgent = TradingAgent
-    fake_agent_mod.Signal = Signal
+    fake_agent_mod.TradingAgent = TradingAgent  # type: ignore[attr-defined]
+    fake_agent_mod.Signal = Signal  # type: ignore[attr-defined]
     # Minimal TradingPrediction placeholder (engine only imports type)
     class TradingPrediction:
         pass
-    fake_agent_mod.TradingPrediction = TradingPrediction
+    fake_agent_mod.TradingPrediction = TradingPrediction  # type: ignore[attr-defined]
 
     sys.modules['backend.agent'] = fake_agent_mod
 

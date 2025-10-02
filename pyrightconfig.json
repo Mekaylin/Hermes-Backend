@@ -1,0 +1,28 @@
+{
+  "typeCheckingMode": "basic",
+  "executionEnvironments": [
+    {
+      "root": "./",
+      "pythonVersion": "3.11"
+    }
+  ],
+  "exclude": [
+    "**/.venv",
+    "**/venv",
+    "backend/.venv",
+    "**/node_modules",
+    "**/.git",
+    "**/__pycache__"
+  ],
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "reportOptionalMemberAccess": false,
+  "reportOptionalCall": false,
+  "reportOptionalSubscript": false,
+  "reportOperatorIssue": false,
+  "reportCallIssue": false,
+  "reportArgumentType": false,
+  "reportReturnType": false,
+  "reportGeneralTypeIssues": false,
+  "extraPaths": ["./typings"]
+}

@@ -1,0 +1,16 @@
+from typing import Any, Optional
+
+
+class Redis:
+    """Minimal Redis client stub used by the codebase.
+
+    Only includes methods the project references: ping, get, set, delete.
+    """
+
+    def ping(self) -> bool: ...
+    def get(self, key: str) -> Optional[bytes]: ...
+    def set(self, key: str, value: Any, ex: Optional[int] = ...) -> bool: ...
+    def delete(self, key: str) -> int: ...
+
+
+def from_url(url: str, decode_responses: bool = ...) -> Redis: ...

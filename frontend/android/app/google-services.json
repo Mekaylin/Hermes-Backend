@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "720939750473",
+    "project_id": "hermes-872d2",
+    "storage_bucket": "hermes-872d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:720939750473:android:28151b1caae31265439b98",
+        "android_client_info": {
+          "package_name": "com.example.hermes_ai_market_analysis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDVu_7-TPg2RaBoh9AyTTP17SgJaKPTaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

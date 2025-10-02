@@ -117,8 +117,9 @@ class MarketScout:
                 signals.append(0.3)  # Bearish
             
             # Volume signal (simplified)
-            volume_ma = df['Volume'].rolling(20).mean().iloc[-1]
-            if latest['Volume'] > volume_ma * 1.2:
+            volume_ma_series = df['Volume'].rolling(20).mean()
+            volume_ma = float(volume_ma_series.iloc[-1]) if not volume_ma_series.empty else float(df['Volume'].mean())
+            if float(latest.get('Volume', 0)) > volume_ma * 1.2:
                 signals.append(0.7)  # High volume
             else:
                 signals.append(0.5)
@@ -129,8 +130,9 @@ class MarketScout:
             p_down = 1 - p_up
             
             # Predicted percentage change (simplified)
-            price_change = (latest['Close'] - prev['Close']) / prev['Close']
-            momentum = df['Close'].pct_change().rolling(5).mean().iloc[-1]
+            price_change = (float(latest['Close']) - float(prev['Close'])) / float(prev['Close']) if float(prev['Close']) != 0 else 0.0
+            momentum_series = df['Close'].pct_change().rolling(5).mean()
+            momentum = float(momentum_series.iloc[-1]) if not momentum_series.empty else 0.0
             pred_pct_change = momentum * 2  # Amplify for prediction
             
             # Confidence based on signal agreement
@@ -293,8 +295,12 @@ class MarketScout:
             sentiment = self.fetch_news_sentiment(symbol)
             
             # Calculate volatility (ATR as % of price)
-            latest_price = df['Close'].iloc[-1]
-            atr = df.get('atr', df['Close'].std()).iloc[-1] if 'atr' in df.columns else df['Close'].std()
+            latest_price = float(df['Close'].iloc[-1])
+            if 'atr' in df.columns:
+                atr_col = df['atr']
+                atr = float(atr_col.iloc[-1]) if hasattr(atr_col, 'iloc') and len(atr_col) > 0 else float(df['Close'].std())
+            else:
+                atr = float(df['Close'].std())
             volatility = atr / latest_price if latest_price > 0 else 0.05
             
             # Calculate raw score

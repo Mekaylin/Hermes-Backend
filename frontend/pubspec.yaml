@@ -15,6 +15,12 @@ dependencies:
   intl: ^0.19.0
   cupertino_icons: ^1.0.2
   
+  # Firebase
+  firebase_core: ^3.1.0
+  firebase_auth: ^5.1.0
+  cloud_firestore: ^5.0.0
+  firebase_analytics: ^11.0.0
+  
   # WebSocket for real-time data
   web_socket_channel: ^3.0.0
   

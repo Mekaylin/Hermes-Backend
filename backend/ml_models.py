@@ -18,12 +18,112 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report, mean_squared_error
-import lightgbm as lgb
+# initialize logger early so we can log from optional imports
+logger = logging.getLogger(__name__)
 
-# Technical Analysis
-import talib
+# Make optional native libraries (lightgbm, talib) optional to avoid import-time failures
+try:
+    import lightgbm as lgb
+except Exception:
+    lgb = None
+    logger.warning('lightgbm not available; LightGBMModel will be disabled or require a fallback')
 
-from data_fetcher_enhanced import MarketData, OHLCV, ohlcv_to_dataframe
+# Technical Analysis (talib is optional; we provide light-weight fallbacks below)
+try:
+    import talib
+except Exception:
+    talib = None
+    logger.warning('talib not available; using pandas-based technical indicator fallbacks')
+
+# --- Lightweight fallbacks for talib functions (used when talib is not installed) ---
+def _rsi(values, timeperiod=14):
+    s = pd.Series(values).astype(float)
+    delta = s.diff()
+    up = delta.clip(lower=0)
+    down = -delta.clip(upper=0)
+    roll_up = up.ewm(alpha=1 / timeperiod, adjust=False).mean()
+    roll_down = down.ewm(alpha=1 / timeperiod, adjust=False).mean()
+    rs = roll_up / roll_down.replace(0, np.nan)
+    rsi = 100 - (100 / (1 + rs))
+    return rsi.values
+
+def _ema(values, span):
+    return pd.Series(values).ewm(span=span, adjust=False).mean().values
+
+def _macd(values, fastperiod=12, slowperiod=26, signalperiod=9):
+    fast = pd.Series(values).ewm(span=fastperiod, adjust=False).mean()
+    slow = pd.Series(values).ewm(span=slowperiod, adjust=False).mean()
+    macd = fast - slow
+    signal = macd.ewm(span=signalperiod, adjust=False).mean()
+    hist = macd - signal
+    return macd.values, signal.values, hist.values
+
+def _bbands(values, timeperiod=20, nbdevup=2, nbdevdn=2):
+    s = pd.Series(values)
+    ma = s.rolling(window=timeperiod).mean()
+    sd = s.rolling(window=timeperiod).std()
+    upper = ma + nbdevup * sd
+    lower = ma - nbdevdn * sd
+    return upper.values, ma.values, lower.values
+
+def _stoch(high, low, close, k_period=14, d_period=3):
+    high_roll = pd.Series(high).rolling(window=k_period).max()
+    low_roll = pd.Series(low).rolling(window=k_period).min()
+    k = 100 * (pd.Series(close) - low_roll) / (high_roll - low_roll)
+    d = k.rolling(window=d_period).mean()
+    return k.fillna(0).values, d.fillna(0).values
+
+def _williams_r(high, low, close, timeperiod=14):
+    high_roll = pd.Series(high).rolling(window=timeperiod).max()
+    low_roll = pd.Series(low).rolling(window=timeperiod).min()
+    wr = -100 * (high_roll - pd.Series(close)) / (high_roll - low_roll)
+    return wr.fillna(0).values
+
+def _obv(close, volume):
+    c = pd.Series(close)
+    v = pd.Series(volume)
+    direction = c.diff().fillna(0).apply(lambda x: 1 if x > 0 else (-1 if x < 0 else 0))
+    obv = (direction * v).cumsum()
+    return obv.values
+
+# Choose talib functions or fallbacks
+def RSI(values, timeperiod=14):
+    return talib.RSI(values, timeperiod=timeperiod) if talib is not None else _rsi(values, timeperiod)
+
+def MACD(values):
+    return talib.MACD(values) if talib is not None else _macd(values)
+
+def BBANDS(values):
+    return talib.BBANDS(values) if talib is not None else _bbands(values)
+
+def STOCH(high, low, close):
+    return talib.STOCH(high, low, close) if talib is not None else _stoch(high, low, close)
+
+def WILLR(high, low, close):
+    return talib.WILLR(high, low, close) if talib is not None else _williams_r(high, low, close)
+
+def OBV(close, volume):
+    return talib.OBV(close, volume) if talib is not None else _obv(close, volume)
+
+def TRANGE(high, low, close):
+    if talib is not None:
+        return talib.TRANGE(high, low, close)
+    # True range fallback
+    high_s = pd.Series(high)
+    low_s = pd.Series(low)
+    close_s = pd.Series(close)
+    tr1 = high_s - low_s
+    tr2 = (high_s - close_s.shift(1)).abs()
+    tr3 = (low_s - close_s.shift(1)).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    return tr.values
+
+def ATR(high, low, close, timeperiod=14):
+    tr = TRANGE(high, low, close)
+    return pd.Series(tr).rolling(window=timeperiod).mean().values
+
+
+from .data_fetcher_enhanced import MarketData, OHLCV, ohlcv_to_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -57,81 +157,103 @@ class FeatureEngineer:
     @staticmethod
     def create_technical_features(df: pd.DataFrame) -> pd.DataFrame:
         """Create comprehensive technical analysis features"""
-        
+
+        df = df.copy()
+
         # Price features
         df['returns'] = df['close'].pct_change()
         df['log_returns'] = np.log(df['close'] / df['close'].shift(1))
         df['price_volatility'] = df['returns'].rolling(window=20).std()
-        
+
         # Moving averages
         for period in [5, 10, 20, 50]:
             df[f'sma_{period}'] = df['close'].rolling(window=period).mean()
             df[f'ema_{period}'] = df['close'].ewm(span=period).mean()
             df[f'price_vs_sma_{period}'] = df['close'] / df[f'sma_{period}'] - 1
-        
+
         # RSI
-        df['rsi'] = talib.RSI(df['close'].values, timeperiod=14)
+        df['rsi'] = RSI(df['close'].values, timeperiod=14)
         df['rsi_oversold'] = (df['rsi'] < 30).astype(int)
         df['rsi_overbought'] = (df['rsi'] > 70).astype(int)
-        
+
         # MACD
-        macd, macd_signal, macd_hist = talib.MACD(df['close'].values)
+        macd, macd_signal, macd_hist = MACD(df['close'].values)
         df['macd'] = macd
         df['macd_signal'] = macd_signal
         df['macd_histogram'] = macd_hist
         df['macd_bullish'] = (df['macd'] > df['macd_signal']).astype(int)
-        
+
         # Bollinger Bands
-        bb_upper, bb_middle, bb_lower = talib.BBANDS(df['close'].values)
+        bb_upper, bb_middle, bb_lower = BBANDS(df['close'].values)
         df['bb_upper'] = bb_upper
         df['bb_middle'] = bb_middle
         df['bb_lower'] = bb_lower
         df['bb_position'] = (df['close'] - bb_lower) / (bb_upper - bb_lower)
         df['bb_squeeze'] = (bb_upper - bb_lower) / bb_middle
-        
+
         # Stochastic
-        df['stoch_k'], df['stoch_d'] = talib.STOCH(df['high'].values, df['low'].values, df['close'].values)
-        
+        df['stoch_k'], df['stoch_d'] = STOCH(df['high'].values, df['low'].values, df['close'].values)
+
         # Williams %R
-        df['williams_r'] = talib.WILLR(df['high'].values, df['low'].values, df['close'].values)
-        
+        df['williams_r'] = WILLR(df['high'].values, df['low'].values, df['close'].values)
+
         # ADX (Average Directional Index)
-        df['adx'] = talib.ADX(df['high'].values, df['low'].values, df['close'].values)
-        
+        # ADX not implemented in fallback; use a simple trend-strength proxy if talib missing
+        if talib is not None and hasattr(talib, 'ADX'):
+            df['adx'] = talib.ADX(df['high'].values, df['low'].values, df['close'].values)
+        else:
+            df['adx'] = (df['close'] - df['close'].rolling(window=14).min()) / (df['close'].rolling(window=14).max() - df['close'].rolling(window=14).min())
+
         # CCI (Commodity Channel Index)
-        df['cci'] = talib.CCI(df['high'].values, df['low'].values, df['close'].values)
-        
+        if talib is not None and hasattr(talib, 'CCI'):
+            df['cci'] = talib.CCI(df['high'].values, df['low'].values, df['close'].values)
+        else:
+            tp = (df['high'] + df['low'] + df['close']) / 3
+            ma = tp.rolling(window=20).mean()
+            md = tp.rolling(window=20).apply(lambda x: np.mean(np.abs(x - np.mean(x))))
+            df['cci'] = (tp - ma) / (0.015 * md)
+
         # Volume features
         if 'volume' in df.columns:
             df['volume_sma'] = df['volume'].rolling(window=20).mean()
             df['volume_ratio'] = df['volume'] / df['volume_sma']
             df['price_volume'] = df['close'] * df['volume']
-            
+
             # On-Balance Volume
-            df['obv'] = talib.OBV(df['close'].values, df['volume'].values)
-            
-            # Volume Price Trend
-            df['vpt'] = talib.AD(df['high'].values, df['low'].values, df['close'].values, df['volume'].values)
-        
+            df['obv'] = OBV(df['close'].values, df['volume'].values)
+
+            # Volume Price Trend (use AD if available)
+            if talib is not None and hasattr(talib, 'AD'):
+                df['vpt'] = talib.AD(df['high'].values, df['low'].values, df['close'].values, df['volume'].values)
+            else:
+                df['vpt'] = (df['close'].pct_change().fillna(0) * df['volume']).cumsum()
+
         # Support and Resistance levels
         df['support'] = df['low'].rolling(window=20).min()
         df['resistance'] = df['high'].rolling(window=20).max()
         df['support_distance'] = (df['close'] - df['support']) / df['close']
         df['resistance_distance'] = (df['resistance'] - df['close']) / df['close']
-        
+
         # Trend features
         df['higher_highs'] = (df['high'] > df['high'].shift(1)).astype(int)
         df['higher_lows'] = (df['low'] > df['low'].shift(1)).astype(int)
         df['uptrend'] = (df['higher_highs'] & df['higher_lows']).astype(int)
-        
+
         # Market volatility
-        df['true_range'] = talib.TRANGE(df['high'].values, df['low'].values, df['close'].values)
-        df['atr'] = talib.ATR(df['high'].values, df['low'].values, df['close'].values)
-        
+        df['true_range'] = TRANGE(df['high'].values, df['low'].values, df['close'].values)
+        df['atr'] = ATR(df['high'].values, df['low'].values, df['close'].values)
+
         # Momentum indicators
-        df['momentum'] = talib.MOM(df['close'].values, timeperiod=10)
-        df['rate_of_change'] = talib.ROC(df['close'].values, timeperiod=10)
-        
+        if talib is not None and hasattr(talib, 'MOM'):
+            df['momentum'] = talib.MOM(df['close'].values, timeperiod=10)
+        else:
+            df['momentum'] = pd.Series(df['close']).diff(10).fillna(0).values
+
+        if talib is not None and hasattr(talib, 'ROC'):
+            df['rate_of_change'] = talib.ROC(df['close'].values, timeperiod=10)
+        else:
+            df['rate_of_change'] = pd.Series(df['close']).pct_change(10).fillna(0).values
+
         return df
     
     @staticmethod
