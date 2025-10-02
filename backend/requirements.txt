@@ -1,5 +1,5 @@
-Minimal, pinned requirements for Hermes backend (cleaned)
-Adjust versions as needed; use a lockfile for deterministic builds
+# Minimal, pinned requirements for Hermes backend (cleaned)
+# Adjust versions as needed; use a lockfile for deterministic builds
 
 fastapi==0.95.2
 uvicorn[standard]==0.22.0

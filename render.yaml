@@ -12,4 +12,4 @@ services:
     envVars:
       - key: PORT
         value: "8000"
-    healthCheckPath: /api/agent/health
+    healthCheckPath: /health
